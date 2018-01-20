@@ -1,13 +1,6 @@
 import { Component, ViewChild, ElementRef, NgZone } from '@angular/core';
 import IPFS from 'ipfs';
-
-import Y from 'yjs';
-import YMemory from 'y-memory';
-import YArray from 'y-array';
-import YText from 'y-text';
-
-Y.extend(YArray, YMemory, YText);
-require('y-ipfs-connector')(Y)
+import Room from 'ipfs-pubsub-room';
 
 declare const monaco: any;
 declare const require: any;
@@ -19,15 +12,18 @@ declare const require: any;
 })
 export class AppComponent {
 
-  private ipfs: any;
+  private room: any;
   private editor: any;
+  private value: string;
   private editorDiv: HTMLDivElement;
 
   @ViewChild('editor') editorContent: ElementRef;
 
   constructor(
     private zone: NgZone
-  ) { }
+  ) {
+    this.value = 'console.log("Hello world");';
+  }
 
   ngAfterViewInit() {
     let onGotAmdLoader = () => {
@@ -51,11 +47,13 @@ export class AppComponent {
   }
 
   repo() {
-    return 'ipfs/yjs-demo/' + Math.random();
+    let timestamp = Date.now()
+    console.log(timestamp)
+    return `ipfs/pubsub-demo/${timestamp}`
   }
 
   ipfsInit() {
-    this.ipfs = new IPFS({
+    const ipfs = new IPFS({
       repo: this.repo(),
       EXPERIMENTAL: {
         pubsub: true
@@ -63,53 +61,72 @@ export class AppComponent {
       config: {
         Addresses: {
           Swarm: [
-            '/dns4/ws-star.discovery.libp2p.io/tcp/443/wss/p2p-websocket-star'
-          ]
-        }
+            "/dns4/wrtc-star.discovery.libp2p.io/tcp/433/wss/p2p-webrtc-star"
+          ],
+          API: "",
+          Gateway: ""
+        },
+        Discovery: {
+          MDNS: {
+            Enabled: false,
+            Interval: 10
+          },
+          webRTCStar: {
+            Enabled: true
+          }
+        },
+        Bootstrap: []
       }
     });
 
-    this.ipfs.once('ready', () => this.ipfs.id((err, info) => {
+    ipfs.once('ready', () => ipfs.id((err, info) => {
       if (err) { throw err }
 
       console.log('IPFS node ready with address ' + info.id)
+      console.log('Online status: ', ipfs.isOnline() ? 'online' : 'offline')
 
-      Y({
-        db: {
-          name: 'memory'
-        },
-        connector: {
-          name: 'ipfs',
-          room: 'ipfs-yjs-demo',
-          ipfs: this.ipfs
-        },
-        share: {
-          editor: 'Text'
-        }
-      }).then((y) => {
-        this.zone.run(() => {
-          this.editor.getModel().onDidChangeContent((e: any) => {
-            console.log(2, this.editor.getValue());
-          });
-        });
-        // y.share.editor = this.editorDiv;
+      this.room = Room(ipfs, 'ipfs-pubsub-demo')
+
+      this.room.on('peer joined', (peer) => {
+        console.log('Peer joined the room', peer)
       })
+
+      this.room.on('peer left', (peer) => {
+        console.log('Peer left...', peer)
+      })
+
+      this.room.on('message', (message) => console.log('got message from ' + message.from + ': ' + message.data.toString()))
+
+      // now started to listen to room
+      this.room.on('subscribed', () => {
+        console.log('Now connected!', this.room.getPeers())
+      })
+
+      this.zone.run(() => {
+        this.editor.getModel().onDidChangeContent((e: any) => {
+          this.value = this.editor.getValue();
+          this.room.broadcast(this.value);
+        });
+      });
     }))
+
+    ipfs.on('error', (err) => console.warn(err)) // Node has hit some error while initing/starting
+
+    ipfs.on('init', () => console.log("Init IPFS"))     // Node has successfully finished initing the repo
+    ipfs.on('start', () => console.log("Start IPFS"))    // Node has started
+    ipfs.on('stop', () => console.log("Stop IPFS"))
+
   }
 
   // Will be called once monaco library is available
   initMonaco() {
     this.editorDiv = this.editorContent.nativeElement;
     this.editor = monaco.editor.create(this.editorDiv, {
-      value: [
-        'console.log("Hello world!");'
-      ].join('\n'),
+      value: this.value,
       language: 'javascript',
       theme: 'vs-dark', // 'vs' | 'vs-dark' | 'hc-black'
       minimap: {
-        enabled: false, // boolean
-        maxColumn: 120, // number
-        showSlider: "always", // "always" | "mouseover"
+        enabled: false // boolean
       },
       automaticLayout: true, // boolean
       wordWrap: 'bounded', // 'off' | 'on' | 'wordWrapColumn' | 'bounded';
