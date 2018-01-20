@@ -1,10 +1,12 @@
-import { Component, ViewChild, ElementRef } from '@angular/core';
+import { Component, ViewChild, ElementRef, NgZone } from '@angular/core';
 import IPFS from 'ipfs';
-import Y from 'yjs';
 
-require('y-memory')(Y)
-require('y-array')(Y)
-require('y-text')(Y)
+import Y from 'yjs';
+import YMemory from 'y-memory';
+import YArray from 'y-array';
+import YText from 'y-text';
+
+Y.extend(YArray, YMemory, YText);
 require('y-ipfs-connector')(Y)
 
 declare const monaco: any;
@@ -18,11 +20,14 @@ declare const require: any;
 export class AppComponent {
 
   private ipfs: any;
+  private editor: any;
   private editorDiv: HTMLDivElement;
 
   @ViewChild('editor') editorContent: ElementRef;
 
-  constructor() { }
+  constructor(
+    private zone: NgZone
+  ) { }
 
   ngAfterViewInit() {
     let onGotAmdLoader = () => {
@@ -49,7 +54,7 @@ export class AppComponent {
     return 'ipfs/yjs-demo/' + Math.random();
   }
 
-  ipfsInit(editorRef: any) {
+  ipfsInit() {
     this.ipfs = new IPFS({
       repo: this.repo(),
       EXPERIMENTAL: {
@@ -79,18 +84,23 @@ export class AppComponent {
           ipfs: this.ipfs
         },
         share: {
-          textfield: 'Text'
+          editor: 'Text'
         }
       }).then((y) => {
-        // y.share.textfield.bind(this.editorDiv);
-      })  
+        this.zone.run(() => {
+          this.editor.getModel().onDidChangeContent((e: any) => {
+            console.log(2, this.editor.getValue());
+          });
+        });
+        // y.share.editor = this.editorDiv;
+      })
     }))
   }
 
   // Will be called once monaco library is available
   initMonaco() {
     this.editorDiv = this.editorContent.nativeElement;
-    const editor = monaco.editor.create(this.editorDiv, {
+    this.editor = monaco.editor.create(this.editorDiv, {
       value: [
         'console.log("Hello world!");'
       ].join('\n'),
@@ -109,7 +119,7 @@ export class AppComponent {
       fontWeight: '500' // 'normal' | 'bold' | 'bolder' | 'lighter' | 'initial' | 'inherit' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
     });
 
-    this.ipfsInit(editor);
+    this.ipfsInit();
   }
 
 }
