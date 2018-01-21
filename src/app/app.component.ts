@@ -1,6 +1,4 @@
 import { Component, ViewChild, ElementRef, NgZone } from '@angular/core';
-import IPFS from 'ipfs';
-import Room from 'ipfs-pubsub-room';
 
 declare const monaco: any;
 declare const require: any;
@@ -12,7 +10,6 @@ declare const require: any;
 })
 export class AppComponent {
 
-  private room: any;
   private editor: any;
   private value: string;
   private editorDiv: HTMLDivElement;
@@ -46,78 +43,6 @@ export class AppComponent {
     }
   }
 
-  repo() {
-    let timestamp = Date.now()
-    console.log(timestamp)
-    return `ipfs/pubsub-demo/${timestamp}`
-  }
-
-  ipfsInit() {
-    const ipfs = new IPFS({
-      repo: this.repo(),
-      EXPERIMENTAL: {
-        pubsub: true
-      },
-      config: {
-        Addresses: {
-          Swarm: [
-            "/dns4/wrtc-star.discovery.libp2p.io/tcp/433/wss/p2p-webrtc-star"
-          ],
-          API: "",
-          Gateway: ""
-        },
-        Discovery: {
-          MDNS: {
-            Enabled: false,
-            Interval: 10
-          },
-          webRTCStar: {
-            Enabled: true
-          }
-        },
-        Bootstrap: []
-      }
-    });
-
-    ipfs.once('ready', () => ipfs.id((err, info) => {
-      if (err) { throw err }
-
-      console.log('IPFS node ready with address ' + info.id)
-      console.log('Online status: ', ipfs.isOnline() ? 'online' : 'offline')
-
-      this.room = Room(ipfs, 'ipfs-pubsub-demo')
-
-      this.room.on('peer joined', (peer) => {
-        console.log('Peer joined the room', peer)
-      })
-
-      this.room.on('peer left', (peer) => {
-        console.log('Peer left...', peer)
-      })
-
-      this.room.on('message', (message) => console.log('got message from ' + message.from + ': ' + message.data.toString()))
-
-      // now started to listen to room
-      this.room.on('subscribed', () => {
-        console.log('Now connected!', this.room.getPeers())
-      })
-
-      this.zone.run(() => {
-        this.editor.getModel().onDidChangeContent((e: any) => {
-          this.value = this.editor.getValue();
-          this.room.broadcast(this.value);
-        });
-      });
-    }))
-
-    ipfs.on('error', (err) => console.warn(err)) // Node has hit some error while initing/starting
-
-    ipfs.on('init', () => console.log("Init IPFS"))     // Node has successfully finished initing the repo
-    ipfs.on('start', () => console.log("Start IPFS"))    // Node has started
-    ipfs.on('stop', () => console.log("Stop IPFS"))
-
-  }
-
   // Will be called once monaco library is available
   initMonaco() {
     this.editorDiv = this.editorContent.nativeElement;
@@ -135,8 +60,6 @@ export class AppComponent {
       fontSize: 16, // number 
       fontWeight: '500' // 'normal' | 'bold' | 'bolder' | 'lighter' | 'initial' | 'inherit' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
     });
-
-    this.ipfsInit();
   }
 
 }
