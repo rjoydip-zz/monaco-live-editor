@@ -85,6 +85,8 @@ export class AppComponent {
 
     this.editor.focus();
 
+    console.log(this.editor.getModel())
+
     // Add an overlay widget
     var overlayWidget = {
       domNode: null,
