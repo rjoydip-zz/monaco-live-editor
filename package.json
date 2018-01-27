@@ -1,5 +1,5 @@
 {
-  "name": "p2p-ng-monaco-editor",
+  "name": "monaco-live-editorr",
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
@@ -11,7 +11,15 @@
     "lint": "ng lint",
     "e2e": "ng e2e"
   },
-  "private": true,
+  "author": "Joydip Roy (Rjoydip)",
+  "email": "joydipand@gmail.com",
+  "url": "https://rjoydip.github.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rjoydip/monaco-live-editor.git",
+    "bugs": "https://github.com/rjoydip/monaco-live-editor/issues"
+  },
+  "private": false,
   "dependencies": {
     "@angular-devkit/core": "0.0.28",
     "@angular/animations": "^5.0.0",

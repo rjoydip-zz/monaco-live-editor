@@ -1,4 +1,4 @@
-# p2p-ng-monaco-editor
+# monaco-live-editor
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.5.1.
 
