@@ -72,10 +72,21 @@ export class AppComponent {
       lineNumbers: 'on', //  'on' | 'off' | 'relative' | ((lineNumber: number) => string);
       lineDecorationsWidth: 30, // number | string;
       fontSize: 16, // number 
-      fontWeight: '500'
+      fontWeight: '500',
+      formatOnType: true,
+      formatOnPaste: true,
+      dragAndDrop: true,
+      autoIndent: true,
+      mouseWheelZoom: true,
+      roundedSelection: true,
+      insertSpaces: true
     });
 
+    this.editor.focus();
+
     this.zone.run(() => {
+
+      console.log(this.editor.getDomNode())
 
       this.sw.on('connect', (peer, id) => {
         console.log('connected to a new peer:', id)

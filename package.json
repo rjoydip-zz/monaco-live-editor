@@ -23,7 +23,6 @@
     "@angular/platform-browser-dynamic": "^5.0.0",
     "@angular/router": "^5.0.0",
     "core-js": "^2.4.1",
-    "ipfs": "^0.27.7",
     "monaco-editor": "^0.10.1",
     "signalhub": "^4.9.0",
     "simple-peer": "^8.2.0",
