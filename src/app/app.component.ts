@@ -85,7 +85,7 @@ export class AppComponent {
 
     this.editor.focus();
 
-    console.log(this.editor.getModel())
+    // console.log(this.editor.getModel())
 
     // Add an overlay widget
     var overlayWidget = {
@@ -132,23 +132,20 @@ export class AppComponent {
       this.sw.on('connect', (peer, id) => {
         console.log('connected to a new peer:', id)
 
+        // TODO: when new peer comes he/she will get original content
+
         this.editor.onKeyDown(e => {
           this.value = this.editor.getValue();
-          console.log(this.value);
-          peer.send(this.value);
-          console.log("onKeyDown")
+          if (this.sw.peers.length > 0) peer.send(this.value);
         });
 
         this.editor.onDidFocusEditor(() => {
           this.value = this.editor.getValue();
-          console.log(this.value);
-          peer.send(this.value);
-          console.log("onDidFocusEditor")
+          if (this.sw.peers.length > 0) peer.send(this.value);
         })
 
         peer.on('data', (data) => {
-          // got a data channel message
-          // console.log(data.toString())
+          // got data channel message
           this.editor.setValue(data.toString());
         });
 
@@ -157,8 +154,6 @@ export class AppComponent {
       this.sw.on('disconnect', (peer, id) => {
         console.log('disconnected from a peer:', id)
       })
-
-
     });
 
   }
