@@ -3,13 +3,13 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "start": "node server.js",
     "ng": "ng",
-    "start": "ng serve",
+    "ng:serve": "ng serve",
     "build": "ng build --prod",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e",
-    "server": "node server.js"
+    "e2e": "ng e2e"
   },
   "private": true,
   "dependencies": {
