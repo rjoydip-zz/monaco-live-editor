@@ -1,5 +1,8 @@
 import { Component, ViewChild, ElementRef, NgZone } from '@angular/core';
 
+import swarm from 'webrtc-swarm';
+import signalhub from 'signalhub';
+
 declare const monaco: any;
 declare const require: any;
 
@@ -10,8 +13,12 @@ declare const require: any;
 })
 export class AppComponent {
 
+  private sw: any;
+  private peer: any;
+  private room: any;
   private editor: any;
   private value: string;
+  private myChannel: String;
   private editorDiv: HTMLDivElement;
 
   @ViewChild('editor') editorContent: ElementRef;
@@ -19,7 +26,13 @@ export class AppComponent {
   constructor(
     private zone: NgZone
   ) {
+    this.myChannel = 'ng-monaco-editor-channel';
     this.value = 'console.log("Hello world");';
+    this.sw = swarm(signalhub('ng-monaco-editor-app', [
+      'https://signalhub-hzbibrznqa.now.sh'
+    ]), {
+        // wrtc: require('wrtc') // don't need this if used in the browser
+      })
   }
 
   ngAfterViewInit() {
@@ -58,8 +71,34 @@ export class AppComponent {
       lineNumbers: 'on', //  'on' | 'off' | 'relative' | ((lineNumber: number) => string);
       lineDecorationsWidth: 30, // number | string;
       fontSize: 16, // number 
-      fontWeight: '500' // 'normal' | 'bold' | 'bolder' | 'lighter' | 'initial' | 'inherit' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+      fontWeight: '500'
     });
+
+    this.zone.run(() => {
+
+      this.sw.on('connect', (peer, id) => {
+        console.log('connected to a new peer:', id)
+
+        this.editor.onKeyDown(e => {
+          this.value = this.editor.getValue();
+          // console.log(this.value);
+          peer.send(this.value);
+        });
+
+        peer.on('data', (data) => {
+          // got a data channel message
+          // console.log(data.toString())
+          this.editor.setValue(data.toString());
+        });
+
+      })
+
+      this.sw.on('disconnect', (peer, id) => {
+        console.log('disconnected from a peer:', id)
+      })
+
+    });
+
   }
 
 }
