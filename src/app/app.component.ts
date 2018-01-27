@@ -13,6 +13,7 @@ declare const require: any;
 })
 export class AppComponent {
 
+  private ipfs: any;
   private sw: any;
   private peer: any;
   private room: any;
@@ -81,9 +82,17 @@ export class AppComponent {
 
         this.editor.onKeyDown(e => {
           this.value = this.editor.getValue();
-          // console.log(this.value);
+          console.log(this.value);
           peer.send(this.value);
+          console.log("onKeyDown")
         });
+
+        this.editor.onDidFocusEditor(() => {
+          this.value = this.editor.getValue();
+          console.log(this.value);
+          peer.send(this.value);
+          console.log("onDidFocusEditor")
+        })
 
         peer.on('data', (data) => {
           // got a data channel message
@@ -96,6 +105,7 @@ export class AppComponent {
       this.sw.on('disconnect', (peer, id) => {
         console.log('disconnected from a peer:', id)
       })
+
 
     });
 
