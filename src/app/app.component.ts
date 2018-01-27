@@ -28,7 +28,7 @@ export class AppComponent {
     private zone: NgZone
   ) {
     this.myChannel = 'ng-monaco-editor-channel';
-    this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};`;
+    this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Fooooooo")`;
     this.sw = swarm(signalhub('ng-monaco-editor-app', [
       'https://signalhub-hzbibrznqa.now.sh'
     ]), {
@@ -57,6 +57,23 @@ export class AppComponent {
     }
   }
 
+  // moble device detection
+  detectmob() {
+    if (navigator.userAgent.match(/Android/i)
+      || navigator.userAgent.match(/webOS/i)
+      || navigator.userAgent.match(/iPhone/i)
+      || navigator.userAgent.match(/iPad/i)
+      || navigator.userAgent.match(/iPod/i)
+      || navigator.userAgent.match(/BlackBerry/i)
+      || navigator.userAgent.match(/Windows Phone/i)
+    ) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
+
   // Will be called once monaco library is available
   initMonaco() {
     this.editorDiv = this.editorContent.nativeElement;
@@ -68,7 +85,7 @@ export class AppComponent {
         enabled: false // boolean
       },
       automaticLayout: true, // boolean
-      wordWrap: 'bounded', // 'off' | 'on' | 'wordWrapColumn' | 'bounded';
+      wordWrap: 'on', // 'off' | 'on' | 'wordWrapColumn' | 'bounded';
       lineNumbers: 'on', //  'on' | 'off' | 'relative' | ((lineNumber: number) => string);
       lineDecorationsWidth: 30, // number | string;
       fontSize: 16, // number 
@@ -80,14 +97,61 @@ export class AppComponent {
       mouseWheelZoom: true,
       roundedSelection: true,
       insertSpaces: true,
-      glyphMargin: true
+      glyphMargin: false
     });
 
     this.editor.focus();
 
+    if (this.detectmob()) {
+      this.editor.updateOptions({
+        fontSize: 12,
+        lineNumbers: 'off',
+        fontWeight: '400',
+        dragAndDrop: false,
+        mouseWheelZoom: false
+      });
+    }
+
+    // action for execution
+    this.editor.addAction({
+      // An unique identifier of the contributed action.
+      id: 'code-execute',
+
+      // A label of the action that will be presented to the user.
+      label: 'Execute this code',
+
+      // An optional array of keybindings for the action.
+      keybindings: [
+        monaco.KeyMod.CtrlCmd | monaco.KeyCode.F9,
+        // chord
+        monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_K, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_M)
+      ],
+
+      // A precondition for this action.
+      precondition: null,
+
+      // A rule to evaluate on top of the precondition in order to dispatch the keybindings.
+      keybindingContext: null,
+
+      contextMenuGroupId: 'navigation',
+
+      contextMenuOrder: 1.5,
+
+      // Method that will be executed when the action is triggered.
+      // @param editor The editor instance is passed in as a convinience
+      run: ed => {
+        console.clear();
+        var F = new Function(this.value);
+        return F();
+      }
+    });
+
     // console.log(this.editor.getModel())
 
-    // Add an overlay widget
+    // Auto resize layout 
+    window.addEventListener("resize", this.editor.layout());
+
+    // Added statusbar overlay widget
     var overlayWidget = {
       domNode: null,
       getId: () => {
