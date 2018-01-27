@@ -1,6 +1,6 @@
 {
-  "name": "monaco-live-editorr",
-  "version": "0.0.0",
+  "name": "monaco-live-editor",
+  "version": "0.0.5",
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
