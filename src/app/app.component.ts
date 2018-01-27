@@ -141,6 +141,7 @@ export class AppComponent {
       // @param editor The editor instance is passed in as a convinience
       run: ed => {
         console.clear();
+        console.warn(`\u2728 \u2728 MONACO LIVE EDITOR CONSOLE \u2728 \u2728`)
         var F = new Function(this.value);
         return F();
       }
