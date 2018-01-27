@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { Component, ViewChild, ElementRef, NgZone, TemplateRef } from '@angular/core';
 
 import swarm from 'webrtc-swarm';
 import signalhub from 'signalhub';
@@ -28,7 +28,7 @@ export class AppComponent {
     private zone: NgZone
   ) {
     this.myChannel = 'ng-monaco-editor-channel';
-    this.value = 'console.log("Hello world");';
+    this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};`;
     this.sw = swarm(signalhub('ng-monaco-editor-app', [
       'https://signalhub-hzbibrznqa.now.sh'
     ]), {
@@ -79,14 +79,53 @@ export class AppComponent {
       autoIndent: true,
       mouseWheelZoom: true,
       roundedSelection: true,
-      insertSpaces: true
+      insertSpaces: true,
+      glyphMargin: true
     });
 
     this.editor.focus();
 
+    // Add an overlay widget
+    var overlayWidget = {
+      domNode: null,
+      getId: () => {
+        return 'my.overlay.widget';
+      },
+      getDomNode: () => {
+        const editorLayoutInfo = this.editor.getLayoutInfo();
+        const editorCursorPosition = this.editor.getPosition();
+        let domNode = document.createElement('div');
+        domNode.innerHTML = `<a id="status-line" title="Current Line">Ln ${editorCursorPosition['lineNumber']}, Col ${editorCursorPosition['column']}</a>`;
+
+        domNode.style.background = 'grey';
+        domNode.style.color = 'rgb(255, 255, 255)';
+        domNode.style.backgroundColor = 'rgb(0, 122, 204)';
+        domNode.style.top = `${editorLayoutInfo['height'] - 21}px`;
+        domNode.style.width = '100%';
+        domNode.style.boxSizing = 'border-box';
+        domNode.style.height = '22px';
+        domNode.style.fontSize = '12px';
+        domNode.style.padding = '1px 10px';
+        domNode.style.overflow = 'hidden';
+        domNode.style.textAlign = 'right';
+        domNode.style.cursor = 'pointer';
+
+        return domNode;
+      },
+      getPosition: () => {
+        return null;
+      }
+    };
+    this.editor.addOverlayWidget(overlayWidget);
+
     this.zone.run(() => {
 
-      console.log(this.editor.getDomNode())
+      // Update line numbers of cursor's current position in the status bar
+      this.editor.onMouseDown(() => {
+        let statusLineContent = this.editorDiv.querySelector('#status-line');
+        const editorCursorPosition = this.editor.getPosition();
+        statusLineContent.innerHTML = `Ln ${editorCursorPosition['lineNumber']}, Col ${editorCursorPosition['column']}`;
+      });
 
       this.sw.on('connect', (peer, id) => {
         console.log('connected to a new peer:', id)
