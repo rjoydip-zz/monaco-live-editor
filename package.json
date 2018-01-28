@@ -22,7 +22,6 @@
   "private": false,
   "dependencies": {
     "@angular-devkit/core": "0.0.28",
-    "@angular/animations": "^5.0.0",
     "@angular/common": "^5.0.0",
     "@angular/compiler": "^5.0.0",
     "@angular/core": "^5.0.0",
@@ -35,6 +34,7 @@
     "express": "^4.16.2",
     "monaco-editor": "^0.10.1",
     "peer-id": "^0.10.5",
+    "pouchdb-browser": "^6.4.2",
     "signalhub": "^4.9.0",
     "webrtc-swarm": "^2.9.0",
     "zone.js": "^0.8.14"
