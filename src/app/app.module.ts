@@ -13,12 +13,13 @@ import { EditorComponent } from './editor/editor.component';
   imports: [
     BrowserModule,
     RouterModule.forRoot([
-      { path: '', redirectTo: '/live', pathMatch: 'full' },
+      { path: '', component: AppComponent },
       { path: 'live', component: EditorComponent },
       { path: 'live/:id', component: EditorComponent }
     ])
   ],
   providers: [],
-  bootstrap: [AppComponent, EditorComponent]
+  bootstrap: [AppComponent],
+  entryComponents: [AppComponent, EditorComponent]
 })
-export class AppModule {}
+export class AppModule { }
