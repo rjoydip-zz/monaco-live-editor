@@ -11,7 +11,7 @@ import { AppComponent } from './app.component';
   imports: [
     BrowserModule,
     RouterModule.forRoot([
-      { path: '', redirectTo: '/live' },
+      { path: '', redirectTo: '/live', pathMatch: 'full' },
       { path: 'live', component: AppComponent },
       { path: 'live/:id', component: AppComponent }
     ])

@@ -7,7 +7,7 @@ import {
   OnInit,
   OnDestroy
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 import PeerId from 'peer-id';
 import swarm from 'webrtc-swarm';
@@ -34,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(
     private zone: NgZone,
+    private router: Router,
     private route: ActivatedRoute
   ) { }
 
@@ -53,6 +54,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
       // store peerInfo into localstorage
       localStorage.setItem("monaco:editor:peerInfo", JSON.stringify(peerInfo));
+
+      // this.router.navigate(['/live', this.uuid]);
 
       const urlId = window.location.pathname.split('/')[2];
       this.uuid = (urlId !== undefined) ? urlId : this.uuid;
