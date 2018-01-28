@@ -1,5 +1,14 @@
-import { Component, ViewChild, ElementRef, NgZone, TemplateRef } from '@angular/core';
+import {
+  Component,
+  ViewChild,
+  ElementRef,
+  NgZone,
+  TemplateRef,
+  OnInit,
+  OnDestroy
+} from '@angular/core';
 
+import PeerId from 'peer-id';
 import swarm from 'webrtc-swarm';
 import signalhub from 'signalhub';
 
@@ -11,12 +20,11 @@ declare const require: any;
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
 
-  private ipfs: any;
   private sw: any;
   private peer: any;
-  private room: any;
+  private peerId: String;
   private editor: any;
   private value: string;
   private myChannel: String;
@@ -27,13 +35,31 @@ export class AppComponent {
   constructor(
     private zone: NgZone
   ) {
-    this.myChannel = 'ng-monaco-editor-channel';
-    this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Fooooooo")`;
-    this.sw = swarm(signalhub('ng-monaco-editor-app', [
+    this.myChannel = 'monaco-live-editor-channel';
+    this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Monaco Live Editor")`;
+    this.sw = swarm(signalhub('monaco-live-editor-app', [
       'https://signalhub-hzbibrznqa.now.sh'
-    ]), {
-        // wrtc: require('wrtc') // don't need this if used in the browser
-      })
+    ]), {});
+
+    PeerId.create({ bits: 1024 }, (err, info) => {
+      if (err) throw err
+
+      let peerInfo = info.toJSON();
+      this.peerId = peerInfo.id;
+
+      console.log("UUID", this.peerId);
+
+      // store peerInfo into localstorage
+      localStorage.setItem("monaco:editor:peerInfo", JSON.stringify(peerInfo));
+    })
+  }
+
+  ngOnInit() {
+    
+  }
+
+  ngOnDestroy() {
+    
   }
 
   ngAfterViewInit() {
@@ -142,7 +168,7 @@ export class AppComponent {
       run: ed => {
         console.clear();
         console.warn(`\u2728 \u2728 MONACO LIVE EDITOR CONSOLE \u2728 \u2728`)
-        var F = new Function(this.value);
+        var F = new Function(ed.getValue());
         return F();
       }
     });

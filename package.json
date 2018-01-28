@@ -34,8 +34,8 @@
     "core-js": "^2.4.1",
     "express": "^4.16.2",
     "monaco-editor": "^0.10.1",
+    "peer-id": "^0.10.5",
     "signalhub": "^4.9.0",
-    "simple-peer": "^8.2.0",
     "webrtc-swarm": "^2.9.0",
     "zone.js": "^0.8.14"
   },
