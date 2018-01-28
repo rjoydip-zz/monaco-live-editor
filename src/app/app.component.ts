@@ -7,6 +7,7 @@ import {
   OnInit,
   OnDestroy
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
 import PeerId from 'peer-id';
 import swarm from 'webrtc-swarm';
@@ -24,64 +25,67 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private sw: any;
   private peer: any;
-  private peerId: String;
   private editor: any;
   private value: string;
-  private myChannel: String;
+  private uuid: String;
   private editorDiv: HTMLDivElement;
 
   @ViewChild('editor') editorContent: ElementRef;
 
   constructor(
-    private zone: NgZone
-  ) {
-    this.myChannel = 'monaco-live-editor-channel';
-    this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Monaco Live Editor")`;
-    this.sw = swarm(signalhub('monaco-live-editor-app', [
-      'https://signalhub-hzbibrznqa.now.sh'
-    ]), {});
+    private zone: NgZone,
+    private route: ActivatedRoute
+  ) { }
+
+  ngOnInit() {
 
     PeerId.create({ bits: 1024 }, (err, info) => {
-      if (err) throw err
+      if (err) {
+        this.uuid = 'xxxxxxxxxx4xxxyxxxxxxx9yyyyyxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = Math.random() * 24 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(24);
+        })
+      }
 
       let peerInfo = info.toJSON();
-      this.peerId = peerInfo.id;
-
-      console.log("UUID", this.peerId);
+      this.uuid = peerInfo.id;
+      this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Monaco Live Editor")`;
 
       // store peerInfo into localstorage
       localStorage.setItem("monaco:editor:peerInfo", JSON.stringify(peerInfo));
+
+      const urlId = window.location.pathname.split('/')[2];
+      this.uuid = (urlId !== undefined) ? urlId : this.uuid;
+
+      console.log(this.uuid);
+
+      // p2p swarm
+      this.sw = swarm(signalhub(`${this.uuid}-app`, [
+        'https://signalhub-hzbibrznqa.now.sh'
+      ]), {});
+
+      let onGotAmdLoader = () => {
+        // Load monaco
+        (<any>window).require.config({ paths: { 'vs': '/assets/monaco/vs' } });
+        (<any>window).require(['vs/editor/editor.main'], () => {
+          this.initMonaco();
+        });
+      };
+  
+      // Load AMD loader if necessary
+      if (!(<any>window).require) {
+        const loaderScript = document.createElement('script');
+        loaderScript.type = 'text/javascript';
+        loaderScript.src = '/assets/monaco/vs/loader.js';
+        loaderScript.addEventListener('load', onGotAmdLoader);
+        document.body.appendChild(loaderScript);
+      } else {
+        onGotAmdLoader();
+      }
     })
   }
 
-  ngOnInit() {
-    
-  }
-
-  ngOnDestroy() {
-    
-  }
-
-  ngAfterViewInit() {
-    let onGotAmdLoader = () => {
-      // Load monaco
-      (<any>window).require.config({ paths: { 'vs': '/assets/monaco/vs' } });
-      (<any>window).require(['vs/editor/editor.main'], () => {
-        this.initMonaco();
-      });
-    };
-
-    // Load AMD loader if necessary
-    if (!(<any>window).require) {
-      const loaderScript = document.createElement('script');
-      loaderScript.type = 'text/javascript';
-      loaderScript.src = '/assets/monaco/vs/loader.js';
-      loaderScript.addEventListener('load', onGotAmdLoader);
-      document.body.appendChild(loaderScript);
-    } else {
-      onGotAmdLoader();
-    }
-  }
+  ngOnDestroy() {}
 
   // moble device detection
   detectmob() {
