@@ -45,13 +45,13 @@ export class EditorComponent implements OnInit, OnDestroy {
       if (err) throw err;
 
       let peerInfo = info.toJSON();
-      
+
       this.shareId = peerInfo.id;
 
       this.route.params
         .filter(x => x !== undefined && x.id !== undefined)
         .subscribe(params => this.shareId = params.id);
-      
+
 
       console.log(this.shareId);
 
@@ -142,6 +142,16 @@ export class EditorComponent implements OnInit, OnDestroy {
       });
     }
 
+    // prevent ctrl+s or cmd+s
+    document.addEventListener("keydown", function (e) {
+      if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
+        e.preventDefault();
+        // Process event...
+      }
+    }, false);
+
+    console.log(this.editor.getConfiguration());
+
     // action for execution
     this.editor.addAction({
       // An unique identifier of the contributed action.
@@ -176,8 +186,6 @@ export class EditorComponent implements OnInit, OnDestroy {
         return F();
       }
     });
-
-    // console.log(this.editor.getModel())
 
     // Auto resize layout 
     window.addEventListener("resize", this.editor.layout());
