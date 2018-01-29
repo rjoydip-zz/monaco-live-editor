@@ -7,13 +7,13 @@ import {
   OnInit,
   OnDestroy
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
-import "rxjs/add/operator/filter";
-
-import PeerId from 'peer-id';
 import swarm from 'webrtc-swarm';
 import signalhub from 'signalhub';
+import PouchDB from 'pouchdb-browser';
+
+import "rxjs/add/operator/filter";
 
 declare const monaco: any;
 declare const require: any;
@@ -25,6 +25,7 @@ declare const require: any;
 })
 export class EditorComponent implements OnInit, OnDestroy {
 
+  private db: any;
   private sw: any;
   private editor: any;
   private value: String;
@@ -35,32 +36,27 @@ export class EditorComponent implements OnInit, OnDestroy {
 
   constructor(
     private zone: NgZone,
+    private router: Router,
     private route: ActivatedRoute
   ) {
-    this.shareId = 'monaco-live-editor';
+    this.shareId = 'live_editor';
   }
 
   ngOnInit() {
-    PeerId.create({ bits: 1024 }, (err, info) => {
-      if (err) throw err;
-
-      let peerInfo = info.toJSON();
-      
-      this.shareId = peerInfo.id;
-
       this.route.params
-        .filter(x => x !== undefined && x.id !== undefined)
-        .subscribe(params => this.shareId = params.id);
-      
+        .subscribe(params => {
+          this.shareId = params.id
+          this.db = new PouchDB('live_editor_db');
+          
+          this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Monaco Live Editor");\n\nconsole.log("UUID : ${this.shareId}")`;
 
-      console.log(this.shareId);
+          // p2p swarm
+          this.sw = swarm(signalhub(`${this.shareId}-app`, [
+            'https://signalhub-hzbibrznqa.now.sh'
+            // 'https://monaco-live-editor.herokuapp.com'
+          ]), {});
 
-      this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Monaco Live Editor");\n\nconsole.log("UUID : ${this.shareId}")`;
-
-      // p2p swarm
-      this.sw = swarm(signalhub(`${this.shareId}-app`, [
-        'https://signalhub-hzbibrznqa.now.sh'
-      ]), {});
+        });
 
       let onGotAmdLoader = () => {
         // Load monaco
@@ -80,9 +76,6 @@ export class EditorComponent implements OnInit, OnDestroy {
       } else {
         onGotAmdLoader();
       }
-
-    });
-
   }
 
   ngOnDestroy() { }
@@ -142,6 +135,26 @@ export class EditorComponent implements OnInit, OnDestroy {
       });
     }
 
+    // put initial content in DB
+    this.db.get(this.shareId).then((doc) => {
+      return this.db.put({
+        _id: this.shareId.toString(),
+        _rev: doc._rev,
+        content: this.value
+      });
+    }).then((response) => {
+      console.log("Initial value inserted");
+    }).catch((err) => {
+      console.log(err);
+    });
+
+    // prevent ctrl+s or cmd+s
+    document.addEventListener("keydown", (e) => {
+      if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
+        e.preventDefault();
+      }
+    }, false);
+
     // action for execution
     this.editor.addAction({
       // An unique identifier of the contributed action.
@@ -176,8 +189,6 @@ export class EditorComponent implements OnInit, OnDestroy {
         return F();
       }
     });
-
-    // console.log(this.editor.getModel())
 
     // Auto resize layout 
     window.addEventListener("resize", this.editor.layout());
@@ -227,24 +238,71 @@ export class EditorComponent implements OnInit, OnDestroy {
       this.sw.on('connect', (peer, id) => {
         console.log('connected to a new peer:', id)
 
-        // TODO: when new peer comes he/she will get original content
+        // send data for new peer
+        this.db.get(this.shareId)
+          .then(response => {
+            if (this.sw.peers.length > 0) peer.send(JSON.stringify({
+              type: 'db',
+              payload: response
+            }));
+          }).catch((err) => {
+            console.log(err);
+          });
 
+        // TODO: when new peer comes he/she will get original content
         this.editor.onKeyDown(e => {
           this.value = this.editor.getValue();
-          if (this.sw.peers.length > 0) peer.send(this.value);
+          if (this.sw.peers.length > 0) peer.send(JSON.stringify({
+            type: 'text',
+            payload: this.value
+          }));
         });
 
         this.editor.onDidFocusEditor(() => {
           this.value = this.editor.getValue();
-          if (this.sw.peers.length > 0) peer.send(this.value);
-        })
-
-        peer.on('data', (data) => {
-          // got data channel message
-          this.editor.setValue(data.toString());
+          if (this.sw.peers.length > 0) peer.send(JSON.stringify({
+            type: 'text',
+            payload: this.value
+          }));
         });
 
-      })
+        peer.on('data', (data) => {
+          const _data = JSON.parse(data.toString());
+          // got data channel message
+          if (_data.type === 'text') {
+            this.db.get(this.shareId).then(docs => {
+              this.db.put({
+                _id: docs._id,
+                _rev: docs._rev,
+                content: _data.payload
+              }).then((response) => {
+                // handle response
+                console.log("DB content updated");
+              }).catch((err) => {
+                console.log(err);
+              });
+            }).catch((err) => {
+              console.log(err);
+            });;
+            this.editor.setValue(_data.payload);
+          } else {
+            this.db.get(this.shareId).then(docs => {
+              this.db.put({
+                _id: docs._id,
+                _rev: docs._rev,
+                content: _data.payload
+              }).then((response) => {
+                // handle response
+                console.log("DB info updated");
+              }).catch((err) => {
+                console.log(err);
+              });
+            }).catch((err) => {
+              console.log(err);
+            });
+          }
+        });
+      });
 
       this.sw.on('disconnect', (peer, id) => {
         console.log('disconnected from a peer:', id)
