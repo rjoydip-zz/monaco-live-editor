@@ -7,9 +7,8 @@ import {
   OnInit,
   OnDestroy
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
-import PeerId from 'peer-id';
 import swarm from 'webrtc-swarm';
 import signalhub from 'signalhub';
 import PouchDB from 'pouchdb-browser';
@@ -37,41 +36,24 @@ export class EditorComponent implements OnInit, OnDestroy {
 
   constructor(
     private zone: NgZone,
+    private router: Router,
     private route: ActivatedRoute
   ) {
-    this.shareId = 'monaco_live_editor';
-    this.db = new PouchDB(this.shareId);
+    this.shareId = 'live_editor';
   }
 
   ngOnInit() {
-    PeerId.create({ bits: 1024 }, (err, info) => {
-      if (err) throw err;
-
-      let peerInfo = info.toJSON();
-
       this.route.params
         .subscribe(params => {
-          if (Object.keys(params).length < 1) {
-            this.shareId = peerInfo.id;
-          } else {
-            this.shareId = params.id
-          }
-
-          this.db.put({
-            _id: this.shareId,
-            content: ''
-          }).then((response) => {
-            // handle response
-            console.log("DB initilize");
-          }).catch((err) => {
-            console.log(err);
-          });
-
+          this.shareId = params.id
+          this.db = new PouchDB('live_editor_db');
+          
           this.value = `"use strict";\nfunction Person(age) {\n\tif (age) {\n\t\tthis.age = age;\n\t}\n}\n\nPerson.prototype.getAge = function () {\n\treturn this.age;\n};\n\nconsole.log("Monaco Live Editor");\n\nconsole.log("UUID : ${this.shareId}")`;
 
           // p2p swarm
           this.sw = swarm(signalhub(`${this.shareId}-app`, [
             'https://signalhub-hzbibrznqa.now.sh'
+            // 'https://monaco-live-editor.herokuapp.com'
           ]), {});
 
         });
@@ -94,9 +76,6 @@ export class EditorComponent implements OnInit, OnDestroy {
       } else {
         onGotAmdLoader();
       }
-
-    });
-
   }
 
   ngOnDestroy() { }

@@ -9,12 +9,11 @@ import { EditorComponent } from './editor/editor.component';
   declarations: [
     AppComponent,
     EditorComponent
-  ],
+],
   imports: [
     BrowserModule,
     RouterModule.forRoot([
       { path: '', component: AppComponent },
-      { path: 'live', component: EditorComponent },
       { path: 'live/:id', component: EditorComponent }
     ])
   ],
